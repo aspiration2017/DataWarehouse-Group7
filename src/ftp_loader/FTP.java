@@ -41,6 +41,7 @@ public class FTP {
 		try {
 			client.connect(host);
 		} catch (SocketException e) {
+			System.out.println("error ip:" + host);
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
