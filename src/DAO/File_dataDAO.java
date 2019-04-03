@@ -18,20 +18,15 @@ import model.File_data;
 public class File_dataDAO {
 
 	/**
-	 * load file with status = 0
-	 * 
-	 * @param cnn
-	 * @return
-	 * @throws SQLException
+	 * load file with status = ready. (file just insert to file_data_log)
 	 */
 	public static List<File_data> loadFileNotDownloadYet(Connection cnn) throws SQLException {
 		List<File_data> result = new ArrayList<>();
-		String sql = "select * from file_data_log where status = 0";
+		String sql = "select * from file_data_log where status = 'ready'";
 		Statement stmt = cnn.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while (rs.next()) {
-			result.add(new File_data(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4), rs.getString(5),
-					rs.getInt(6), rs.getInt(8)));
+			result.add(new File_data(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getInt(5), rs.getString(4)));
 		}
 		rs.close();
 		stmt.close();
@@ -39,20 +34,15 @@ public class File_dataDAO {
 	}
 
 	/**
-	 * load file with status = 1
-	 * 
-	 * @param cnn
-	 * @return
-	 * @throws SQLException
+	 * load file with status = downloaded (file available in local)
 	 */
 	public static List<File_data> loadDownloadedFile(Connection cnn) throws SQLException {
 		List<File_data> result = new ArrayList<>();
-		String sql = "select * from file_data_log where status = 1";
+		String sql = "select * from file_data_log where status = 'downloaded'";
 		Statement stmt = cnn.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while (rs.next()) {
-			result.add(new File_data(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4), rs.getString(5),
-					rs.getInt(6), rs.getInt(8)));
+			result.add(new File_data(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getInt(5), rs.getString(4)));
 		}
 		rs.close();
 		stmt.close();
@@ -60,31 +50,36 @@ public class File_dataDAO {
 	}
 
 	/**
-	 * update status file when download || extract file into staging
-	 * 
-	 * @param cnn
-	 * @param idFile
-	 * @param stt
-	 * @throws SQLException
+	 * update status file when download, error,...etc
 	 */
-	public static void updateStatus(Connection cnn, int idFile, int stt) throws SQLException {
+	public static void updateStatus(Connection cnn, int idFile, String stt) throws SQLException {
 		String sql = "UPDATE file_data_log SET status = ? where id = ?";
 		PreparedStatement stmt = cnn.prepareStatement(sql);
-		stmt.setInt(1, stt);
+		stmt.setString(1, stt);
 		stmt.setInt(2, idFile);
 		stmt.executeUpdate();
 		stmt.close();
 	}
 
-	public static void updateLocalPathFile(Connection cnn, int idFile, String path) throws SQLException {
-		String sql = "UPDATE file_data_log SET local_path = ? where id = ?";
+	public static void updateTimeDownload(Connection cnn, int idFile) throws SQLException {
+		String sql = "UPDATE file_data_log SET time_download = NOW() where id = ?";
 		PreparedStatement stmt = cnn.prepareStatement(sql);
-		stmt.setString(1, path);
-		stmt.setInt(2, idFile);
+		stmt.setInt(1, idFile);
 		stmt.executeUpdate();
 		stmt.close();
 	}
 
+	public static void updateTimeLoadIntoStaging(Connection cnn, int idFile) throws SQLException {
+		String sql = "UPDATE file_data_log SET time_load_staging = NOW() where id = ?";
+		PreparedStatement stmt = cnn.prepareStatement(sql);
+		stmt.setInt(1, idFile);
+		stmt.executeUpdate();
+		stmt.close();
+	}
+
+	/**
+	 * count loaded rows and insert it into db control.
+	 */
 	public static void updateLoadedRows(Connection cnn, int idFile, int loaded_rows) throws SQLException {
 		String sql = "UPDATE file_data_log SET loaded_rows = ? where id = ?";
 		PreparedStatement stmt = cnn.prepareStatement(sql);
@@ -93,36 +88,38 @@ public class File_dataDAO {
 		stmt.executeUpdate();
 		stmt.close();
 	}
-	
+
 	/**
-	 * load file from local to staging database
-	 * @param cnn
-	 * @param file
-	 * @return number of loaded rows
-	 * @throws IOException
+	 * load file from local to staging database 
 	 */
 	public static int loadFileFromLocalToStaging(Connection cnn, File_data file) throws IOException, SQLException {
 		int loaded_rows = 0;
-		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file.localPath), "utf-8"));
+		BufferedReader reader = new BufferedReader(
+				new InputStreamReader(new FileInputStream(file.host.file_localPath + file.fileName), "utf-8"));
 		int numberOfFields = file.getNumberOfFields();
 		StringBuilder value = new StringBuilder();
 		for (int i = 0; i < numberOfFields; i++) {
-			if (i == numberOfFields-1)
+			if (i == numberOfFields - 1)
 				value.append("?");
 			else
 				value.append("?,");
 		}
 		StringTokenizer st;
-		String sql = "INSERT INTO "+ file.host.des_table+file.host.fields +" VALUES("+value.toString()+")";
-		PreparedStatement stmt = cnn.prepareStatement(sql);
+		String sql = "INSERT INTO " + file.host.des_table + file.host.fields + " VALUES(" + value.toString() + ")";
+		PreparedStatement stmt;
+		stmt = cnn.prepareStatement(sql);
 		String line = "";
 		while ((line = reader.readLine()) != null) {
-			st = new StringTokenizer(line, file.host.delimiter);
-			for (int i = 1; i <= numberOfFields; i++) {
-				stmt.setString(i, st.nextToken());
+			try {
+				st = new StringTokenizer(line, file.host.delimiter);
+				for (int i = 1; i <= numberOfFields; i++) {
+					stmt.setString(i, st.nextToken());
+				}
+				stmt.executeUpdate();
+				loaded_rows++;
+			} catch (SQLException e) {
+				System.out.println(e.getMessage());
 			}
-			stmt.executeUpdate();
-			loaded_rows++;
 		}
 		stmt.close();
 		reader.close();
