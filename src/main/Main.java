@@ -35,8 +35,8 @@ public class Main {
 	
 	/**
 	 * get files's info which not downloaded yet from db & download it.
-	 * update status file_data_log from 'ready' to 'download' & update time downloaded
-	 * @throws SQLException
+	 * if not error, update file_data_log's status from 'ready' to 'download' & update time downloaded
+	 * else update file_data_log's status from 'ready' to 'error' (don't update time)
 	 */
 	public void downloadFile() throws SQLException {
 		List<File_data> files = File_dataDAO.loadFileNotDownloadYet(cnnControl);
@@ -60,7 +60,6 @@ public class Main {
 	 * get file's info which be downloaded.
 	 * read file and INSERT file's data into db (staging) with compatible table
 	 * update loaded rows & time loaded into db (control) file_data_log table
-	 * @throws SQLException
 	 */
 	public void loadFileToStaging() throws SQLException {
 		List<File_data> files = File_dataDAO.loadDownloadedFile(cnnControl);
@@ -81,8 +80,8 @@ public class Main {
 		Main m = new Main();
 		m.downloadFile();
 		System.out.println("download end!");
-		m.loadFileToStaging();
-		System.out.println("load into staging end!");
+//		m.loadFileToStaging();
+//		System.out.println("load into staging end!");
 		m.closeControlCnn();
 		m.closeStagingCnn();
 	}

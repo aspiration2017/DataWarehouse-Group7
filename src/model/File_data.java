@@ -53,18 +53,14 @@ public class File_data {
 		FTP ftp = new FTP(host.hostName, host.username, host.password);
 		boolean connectFTP = ftp.connect();
 		if (connectFTP) {
+			System.out.println("connected host: "+host.hostName);
 			boolean success = ftp.saveFileToLocal(host.file_dir+fileName, host.file_localPath+fileName);
+			String msg = success ? "saved file: ": "error on file: ";
+			System.out.println(msg+fileName);
 			ftp.logout();
 			ftp.disconnect();
-			System.out.println("logged out host: " + host.hostName);
-			if (success) {
-				System.out.println("saved file " + id);
-				return true;
-			}
-			else {
-				System.out.println("fail file:" + id);
-				return false;
-			}
+			System.out.println("logged out!");
+			return success;
 		}
 		return false;
 	}
