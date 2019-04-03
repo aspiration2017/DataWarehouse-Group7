@@ -33,47 +33,56 @@ public class Main {
 		cnnStaging.close();
 	}
 	
+	/**
+	 * get files's info which not downloaded yet from db & download it.
+	 * update status file_data_log from 'ready' to 'download' & update time downloaded
+	 * @throws SQLException
+	 */
 	public void downloadFile() throws SQLException {
 		List<File_data> files = File_dataDAO.loadFileNotDownloadYet(cnnControl);
 		for (File_data file : files) {
 			file.setHost(hosts);
 			try {
-				file.saveToLocal();
-//				try {
-//					cnnControl.setAutoCommit(false);
-//					File_dataDAO.updateLocalPathFile(cnnControl, file.id, file.localPath);
-//					File_dataDAO.updateStatus(cnnControl, file.id, 1);
-//					cnnControl.commit();
-//					cnnControl.setAutoCommit(true);
-//				} catch (Exception e) {
-//					cnnControl.rollback();
-//					e.printStackTrace();
-//				}
+				boolean isSuccess = file.saveToLocal();
+				if (isSuccess) {
+					File_dataDAO.updateStatus(cnnControl, file.id, "downloaded");
+					File_dataDAO.updateTimeDownload(cnnControl, file.id);
+				}
+				else
+					File_dataDAO.updateStatus(cnnControl, file.id, "error");
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		}
 	}
 	
+	/**
+	 * get file's info which be downloaded.
+	 * read file and INSERT file's data into db (staging) with compatible table
+	 * update loaded rows & time loaded into db (control) file_data_log table
+	 * @throws SQLException
+	 */
 	public void loadFileToStaging() throws SQLException {
 		List<File_data> files = File_dataDAO.loadDownloadedFile(cnnControl);
 		int count = 0;
 		for (File_data file : files) {
+			file.setHost(hosts);
 			try {
 				count = File_dataDAO.loadFileFromLocalToStaging(cnnStaging, file);
 			} catch (IOException e) {
-				File_dataDAO.updateLoadedRows(cnnControl, file.id, count);
 				e.printStackTrace();
 			}
 			File_dataDAO.updateLoadedRows(cnnControl, file.id, count);
+			File_dataDAO.updateTimeLoadIntoStaging(cnnControl, file.id);
 		}
 	}
 
 	public static void main(String[] args) throws SQLException {
 		Main m = new Main();
-//		m.downloadFile();
-//		m.loadFileToStaging();
-		
+		m.downloadFile();
+		System.out.println("download end!");
+		m.loadFileToStaging();
+		System.out.println("load into staging end!");
 		m.closeControlCnn();
 		m.closeStagingCnn();
 	}
