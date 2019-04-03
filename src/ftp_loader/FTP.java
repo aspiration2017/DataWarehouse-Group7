@@ -1,5 +1,6 @@
 package ftp_loader;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.io.InputStream;
 import java.net.SocketException;
 
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPReply;
 
 public class FTP {
 	String host, username, password;
@@ -18,11 +20,11 @@ public class FTP {
 		this.username = username;
 		this.password = password;
 		client = new FTPClient();
-		connect();
-		login();
 	}
 	
-	// load file from ftp server to InputStream
+	/**
+	 *  load file from FTP server to InputStream (not used)
+	 */
 	public InputStream getInputStreamFromFTP(String remoteFilePath) {
 		InputStream in = null;
 		try {
@@ -33,36 +35,62 @@ public class FTP {
 		return in;
 	}
 	
-	public void saveFileToLocal(String remoteFilePath, String localPath) throws FileNotFoundException, IOException {
-		client.retrieveFile(remoteFilePath, new FileOutputStream(localPath));
+	/**
+	 * save file to local from FTP with remoteFilePath in server & localPath 
+	 */
+	public boolean saveFileToLocal(String remoteFilePath, String localPath) throws FileNotFoundException, IOException {
+		return client.retrieveFile(remoteFilePath, new FileOutputStream(new File(localPath)));
 	}
 	
-	public void connect() {
+	/**
+	 * FTP connect to host.
+	 * if FTP's reply is Positive, disconnect this FTP
+	 * else Login into that FTP
+	 */
+	public boolean connect() {
 		try {
-			client.connect(host);
+			client.connect(host, 21);
+			client.enterLocalPassiveMode();
+			if (!FTPReply.isPositiveCompletion(client.getReplyCode())) {
+				disconnect();
+				return false;
+			}
+			else
+				return login();
 		} catch (SocketException e) {
-			System.out.println("error ip:" + host);
-			e.printStackTrace();
+			System.out.println(e.getMessage());
+			System.out.println("host: " + host);
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(e.getMessage());
+			System.out.println("host: " + host);
 		}
+		return false;
 	}
 	
 	public boolean login() {
 		try {
 			return client.login(username, password);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("error login: "+ host+" "+ e.getMessage());
 		}
 		return false;
 	}
 	
 	public boolean logout() {
 		try {
-			return client.logout();
+			client.logout();
+			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("error logout:" + host +" "+ e.getMessage());
 		}
 		return false;
+	}
+	
+	public void disconnect() {
+		try {
+			client.disconnect();
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
 	}
 }
