@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.SocketException;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
@@ -57,10 +56,7 @@ public class FTP {
 			}
 			else
 				return login();
-		} catch (SocketException e) {
-			System.out.println(e.getMessage());
-			System.out.println("host: " + host);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			System.out.println("host: " + host);
 		}
