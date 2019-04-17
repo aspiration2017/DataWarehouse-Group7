@@ -14,19 +14,30 @@ public class HostDAO {
 	/**
 	 * load full host from db
 	 */
-	public static List<Host> loadHost(Connection cnn) throws SQLException {
+	public static List<Host> loadHost(Connection cnn) {
 		List<Host> result = new ArrayList<>();
 		String query = "select * from host_config";
 		Statement stmt = null;
 		ResultSet rs = null;
-		stmt = cnn.createStatement();
+		try {
+			stmt = cnn.createStatement();
 		rs = stmt.executeQuery(query);
 
 		while (rs.next()) {
-		result.add(new Host(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(8), rs.getString(7), rs.getString(10), rs.getString(11), rs.getString(12)));
+			result.add(new Host(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(7),
+					rs.getString(8), rs.getString(10), rs.getString(11), rs.getString(12), rs.getString(13),
+					rs.getString(14), rs.getInt(15), rs.getString(16), rs.getString(17)));
 		}
-		rs.close();
-		stmt.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				rs.close();
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		return result;
 	}
 }

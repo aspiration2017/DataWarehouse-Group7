@@ -10,18 +10,32 @@ import ftp_loader.FTP;
 public class File_data {
 	public int id, idHost;
 	public String fileName;
-	public int loaded_rows;
+	public int line,loaded_rows;
 	public String status;
 	public Host host;
 
-
-	public File_data(int id, int idHost, String fileName, int loaded_rows, String status) {
+	public File_data(int id, int idHost, String fileName,int line, int loaded_rows, String status) {
 		super();
 		this.id = id;
 		this.idHost = idHost;
 		this.fileName = fileName;
+		this.line = line;
 		this.loaded_rows = loaded_rows;
 		this.status = status;
+	}
+	
+	public File_data(int id, int idHost) {
+		super();
+		this.id = id;
+		this.idHost = idHost;
+	}
+
+	public int getLine() {
+		return line;
+	}
+
+	public void setLine(int line) {
+		this.line = line;
 	}
 
 	public File_data() {
