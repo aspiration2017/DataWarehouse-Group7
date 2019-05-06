@@ -110,13 +110,18 @@ public class Main {
 	 */
 	public void updateStatistic() throws SQLException {
 		Map<Date, Integer> map = DataDAO.getAmountStudentPerDay(cnnWarehouse);
-		for (Entry<Date, Integer> e : map.entrySet()) {
-			try {
+		cnnMart.setAutoCommit(false);
+		try {
+			DataDAO.truncateStatistic(cnnMart);
+			for (Entry<Date, Integer> e : map.entrySet()) {
 				DataDAO.insertStatistic(cnnMart, e.getKey(), e.getValue());
-			} catch (Exception e2) {
-				System.out.println(e2.getMessage());
 			}
+			cnnMart.commit();
+		} catch (Exception e2) {
+			System.out.println(e2.getMessage());
+			cnnMart.rollback();
 		}
+		cnnMart.setAutoCommit(true);	
 	}
 
 	public String getMssv(String data) {
