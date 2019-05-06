@@ -82,7 +82,7 @@ public class DataDAO {
 	
 	public static Map<Date, Integer> getAmountStudentPerDay(Connection cnn) throws SQLException {
 		Map<Date, Integer> result = new HashMap<>();
-		String sql = "select DATE(added_date) dateonly, count(id) from student where is_active = 1 group by dateonly";
+		String sql = "select DATE(added_date) dateonly, count(id) from student group by dateonly";
 		Statement stmt = cnn.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while (rs.next()) {
