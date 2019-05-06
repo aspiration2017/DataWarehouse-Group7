@@ -10,8 +10,11 @@ import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import DAO.DataDAO;
+import DAO.DataMart;
+import DAO.DataWarehouse;
 import DAO.File_dataDAO;
 import DAO.HostDAO;
+import DAO.Staging;
 import connection.ControlConnection;
 import connection.DataMartConnection;
 import connection.StagingConnection;
@@ -56,7 +59,7 @@ public class Main {
 	 */
 	public void loadFileToStaging() throws SQLException {
 		List<File_data> files = File_dataDAO.loadDownloadedFiles(cnnControl);
-		int count = 0;
+		int count = 0; // line loaded
 		for (File_data file : files) {
 			file.setHost(hosts);
 			try {
@@ -76,45 +79,56 @@ public class Main {
 		}
 	}
 
-	/* step 3:
+	/** step 3:
 	 * get data from staging's table and insert it into warehouse, then truncate
 	 * that table.
 	 */
 	public void loadDataFromStagingIntoWarehouse() throws SQLException {
 		List<File_data> files = File_dataDAO.loadedStagingFiles(cnnControl);
 		Host host;
+		cnnWarehouse.setAutoCommit(false);
+		cnnStaging.setAutoCommit(false);
+		cnnControl.setAutoCommit(false);
 		for (File_data file : files) {
 			file.setHost(hosts);
 			host = file.host;
-			List<String> datas = DataDAO.getData(cnnStaging, host);
-			for (String data : datas) {
-				int idExistedData = DataDAO.isExistedData(cnnWarehouse, getMssv(data), host.id);
-				if (idExistedData != -1) {
-					DataDAO.updateNonActice(cnnWarehouse, idExistedData);
+			try {
+				List<String> datas = Staging.getData(cnnStaging, host);
+				for (String oneLine : datas) {
+					int idExistedData = DataWarehouse.isExistedData(cnnWarehouse, getMssv(oneLine), host.id); // check is existed Data
+					if (idExistedData != -1) {
+						DataWarehouse.updateNonActice(cnnWarehouse, idExistedData);
+					}
+					DataWarehouse.insertWarehouse(cnnWarehouse, host, oneLine);
 				}
-				try {
-					DataDAO.insertWarehouse(cnnWarehouse, host, data);
-				} catch (Exception e) {
-					System.out.println(e.getMessage());
-				}
+				File_dataDAO.updateTimeLoadDataIntoWarehouse(cnnControl, file.id);
+				File_dataDAO.updateStatus(cnnControl, file.id, "inwarehouse");
+				Staging.truncateStagingTable(cnnStaging, host.des_table);
+				cnnWarehouse.commit();
+				cnnStaging.commit();
+				cnnControl.commit();
+				System.out.println("loaded into warehouse " + host.des_table);
+			} catch (Exception e) {
+				cnnControl.rollback();
+				cnnWarehouse.rollback();
+				cnnStaging.rollback();
 			}
-			File_dataDAO.updateTimeLoadDataIntoWarehouse(cnnControl, file.id);
-			File_dataDAO.updateStatus(cnnControl, file.id, "inwarehouse");
-			DataDAO.truncateStagingTable(cnnStaging, host.des_table);
-			System.out.println("loaded into warehouse " + host.des_table);
 		}
+		cnnWarehouse.setAutoCommit(true);
+		cnnStaging.setAutoCommit(true);
+		cnnControl.setAutoCommit(true);
 	}
 
-	/* step 4:
+	/** step 4:
 	 * select group by date, and count number of students on that date.
 	 */
 	public void updateStatistic() throws SQLException {
-		Map<Date, Integer> map = DataDAO.getAmountStudentPerDay(cnnWarehouse);
+		Map<Date, Integer> map = DataWarehouse.getAmountStudentPerDay(cnnWarehouse);
 		cnnMart.setAutoCommit(false);
 		try {
-			DataDAO.truncateStatistic(cnnMart);
+			DataMart.truncateStatistic(cnnMart);
 			for (Entry<Date, Integer> e : map.entrySet()) {
-				DataDAO.insertStatistic(cnnMart, e.getKey(), e.getValue());
+				DataMart.insertStatistic(cnnMart, e.getKey(), e.getValue());
 			}
 			cnnMart.commit();
 		} catch (Exception e2) {
@@ -124,6 +138,9 @@ public class Main {
 		cnnMart.setAutoCommit(true);	
 	}
 
+	/**
+	 * get MSSV from oneLine of Data
+	 */
 	public String getMssv(String data) {
 		StringTokenizer st = new StringTokenizer(data, ",");
 		return st.nextToken();
