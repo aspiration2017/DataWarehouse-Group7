@@ -51,7 +51,7 @@ public class File_dataDAO {
 	
 	public static List<File_data> loadedStagingFiles(Connection cnn) throws SQLException {
 		List<File_data> result = new ArrayList<>();
-		String sql = "select id, id_host from file_data_log where status = 'loadedstaging'";
+		String sql = "select id, id_host from file_data_log where status = 'instaging'";
 		Statement stmt = cnn.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while (rs.next()) {

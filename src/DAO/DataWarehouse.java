@@ -22,8 +22,6 @@ public class DataWarehouse {
 		stmt.setInt(2, id_source);
 		ResultSet rs = stmt.executeQuery();
 		if (rs.next()) {
-			rs.close();
-			stmt.close();
 			return rs.getInt(1);
 		}
 		rs.close();
