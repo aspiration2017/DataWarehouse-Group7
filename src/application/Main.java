@@ -70,10 +70,7 @@ public class Main {
 			}
 			File_dataDAO.updateLoadedRows(cnnControl, file.id, count);
 			File_dataDAO.updateTimeLoadIntoStaging(cnnControl, file.id);
-			if (count == file.line)
-				File_dataDAO.updateStatus(cnnControl, file.id, "loadedstaging");
-			else
-				File_dataDAO.updateStatus(cnnControl, file.id, "missingvaluestaging");
+			File_dataDAO.updateStatus(cnnControl, file.id, "instaging");
 
 			System.out.println("loaded to staging: " + file.fileName);
 		}
@@ -164,7 +161,9 @@ public class Main {
 
 	public static void main(String[] args) throws SQLException {
 		Main m = new Main();
-
+		
+		m.updateStatistic();
+		
 		m.closeMartCnn();
 		m.closeControlCnn();
 		m.closeStagingCnn();
