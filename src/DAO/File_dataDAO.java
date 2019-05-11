@@ -113,11 +113,10 @@ public class File_dataDAO {
 	/**
 	 * load file from local to staging database 
 	 */
-	public static int loadFileFromLocalToStaging(Connection cnn, File_data file) throws IOException, SQLException {
+	public static int loadFileFromLocalToStaging(Connection cnnStaging, File_data file) throws IOException, SQLException {
 		int loaded_rows = 0;
-		BufferedReader reader = new BufferedReader(
-				new InputStreamReader(new FileInputStream(file.host.file_localPath + file.fileName), "utf-8"));
 		int numberOfFields = file.getNumberOfFields();
+		// create insert SQL
 		StringBuilder value = new StringBuilder();
 		for (int i = 0; i < numberOfFields; i++) {
 			if (i == numberOfFields - 1)
@@ -127,24 +126,26 @@ public class File_dataDAO {
 		}
 		StringTokenizer st;
 		String sql = "INSERT INTO " + file.host.des_table + file.host.fields + " VALUES(" + value.toString() + ")";
-		PreparedStatement stmt;
-		stmt = cnn.prepareStatement(sql);
-		String line = "";
+		PreparedStatement stmt = cnnStaging.prepareStatement(sql);
+		
+		// read data from file
+		BufferedReader reader = new BufferedReader(
+				new InputStreamReader(new FileInputStream(file.host.file_localPath + file.fileName), "utf-8"));
+		String line;
 		boolean error = false;
 		while ((line = reader.readLine()) != null) {
-			System.out.println(line);
 			try {
 				st = new StringTokenizer(line, file.host.delimiter);
 				for (int i = 1; i <= numberOfFields; i++) {
 					if(st.hasMoreTokens())
 						stmt.setString(i, st.nextToken());
 					else {
-						error = true;
-						i = Integer.MAX_VALUE-1;
+						error = true; // error data
+						break;
 					}
 				}
 				if (!error) {
-					stmt.executeUpdate();
+					stmt.addBatch(); // if not error, add sql into batch
 					loaded_rows++;
 				}
 				error = false;
@@ -152,6 +153,7 @@ public class File_dataDAO {
 				System.out.println(e.getMessage());
 			}
 		}
+		stmt.executeBatch();
 		stmt.close();
 		reader.close();
 		return loaded_rows;

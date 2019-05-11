@@ -8,7 +8,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -29,7 +31,8 @@ public class DataWarehouse {
 		return -1;
 	}
 
-	public static void insertWarehouse(Connection cnnDW, Host host, String oneLine) throws SQLException, ParseException {
+	/**
+	public void insertWarehouse(Connection cnnDW, Host host, String oneLine) throws SQLException, ParseException {
 		StringBuilder sb = new StringBuilder();
 		sb.append("insert into student(");
 		sb.append(host.dw_query_insert);
@@ -65,7 +68,47 @@ public class DataWarehouse {
 		stmt.executeUpdate();
 		stmt.close();
 	}
+	*/
 
+	public static void insertWarehouse(Connection cnnDW, Host host, List<String> datas) throws SQLException, ParseException {
+		String sql = "insert into STUDENT("+host.dw_fields_insert+") values"+host.dw_values_insert;
+		PreparedStatement stmt = cnnDW.prepareStatement(sql);
+		// 1. create array format
+		StringTokenizer format = new StringTokenizer(host.format_fields, ",");
+		String[] formatArr = new String[format.countTokens()];
+		for (int i = 0; i < formatArr.length; i++) {
+			formatArr[i] = format.nextToken();
+		}
+		
+		// 2. read each line in "datas", using 'batch' 
+		for (int i = 0; i < datas.size(); i++) {
+			int k = 1;
+			StringTokenizer values = new StringTokenizer(datas.get(i), ",");
+			for(int j = 0; j < formatArr.length; j++) {
+				String type = formatArr[j];
+				String value = values.nextToken();
+				switch (type) {
+				case "int":
+					stmt.setInt(k, Integer.parseInt(value));
+					break;
+				case "date":
+					stmt.setDate(k, new Date(new SimpleDateFormat(host.format_date).parse(value).getTime()));
+					break;
+				case "string":
+					stmt.setString(k, value);
+					break;
+				default:
+					break;
+				}
+				k++;
+			}
+			stmt.setInt(k, host.id);
+			stmt.addBatch();
+		}
+		stmt.executeBatch();
+		stmt.close();
+	}
+	
 	public static void updateNonActice(Connection cnnDW, int id) throws SQLException {
 		String sql = "update student set is_active = 0 where id = ?";
 		PreparedStatement stmt = cnnDW.prepareStatement(sql);
@@ -75,7 +118,7 @@ public class DataWarehouse {
 	}
 	
 	/**
-	 * count added line perday
+	 * count added line/day
 	 */
 	public static Map<Date, Integer> getAmountStudentPerDay(Connection cnnDW) throws SQLException {
 		Map<Date, Integer> result = new HashMap<>();

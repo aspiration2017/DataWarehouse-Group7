@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import DAO.DataDAO;
 import DAO.DataMart;
 import DAO.DataWarehouse;
 import DAO.File_dataDAO;
@@ -91,21 +90,16 @@ public class Main {
 			host = file.host;
 			try {
 				List<String> datas = Staging.getData(cnnStaging, host);
-				for (String oneLine : datas) {
-					int idExistedData = DataWarehouse.isExistedData(cnnWarehouse, getMssv(oneLine), host.id); // check is existed Data
-					if (idExistedData != -1) {
-						DataWarehouse.updateNonActice(cnnWarehouse, idExistedData);
-					}
-					DataWarehouse.insertWarehouse(cnnWarehouse, host, oneLine);
-				}
-				File_dataDAO.updateTimeLoadDataIntoWarehouse(cnnControl, file.id);
-				File_dataDAO.updateStatus(cnnControl, file.id, "inwarehouse");
+				DataWarehouse.insertWarehouse(cnnWarehouse, host, datas); // insert into dw
+				File_dataDAO.updateTimeLoadDataIntoWarehouse(cnnControl, file.id); // update time upload
+				File_dataDAO.updateStatus(cnnControl, file.id, "inwarehouse"); // update stt
 				Staging.truncateStagingTable(cnnStaging, host.des_table);
 				cnnWarehouse.commit();
 				cnnStaging.commit();
 				cnnControl.commit();
 				System.out.println("loaded into warehouse " + host.des_table);
 			} catch (Exception e) {
+				e.printStackTrace();
 				cnnControl.rollback();
 				cnnWarehouse.rollback();
 				cnnStaging.rollback();
@@ -161,8 +155,6 @@ public class Main {
 
 	public static void main(String[] args) throws SQLException {
 		Main m = new Main();
-		
-		m.updateStatistic();
 		
 		m.closeMartCnn();
 		m.closeControlCnn();
