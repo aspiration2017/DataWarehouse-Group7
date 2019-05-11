@@ -38,7 +38,7 @@ public class DataDAO {
 	public static void insertWarehouse(Connection cnn, Host host, String data) throws SQLException, ParseException {
 		StringBuilder sb = new StringBuilder();
 		sb.append("insert into student(");
-		sb.append(host.dw_query_insert);
+		sb.append(host.dw_fields_insert);
 		sb.append(") values(");
 		for (int i = 0; i < host.number_of_fields; i++) {
 				sb.append("?,");
@@ -103,7 +103,7 @@ public class DataDAO {
 
 	public static List<String> getData(Connection cnn, Host host) throws SQLException {
 		List<String> result = new ArrayList<>();
-		String sql = "select " + host.dw_query_select + " from " + host.des_table;
+		String sql = "select " + host.select_staging_to_dw + " from " + host.des_table;
 		Statement stmt = cnn.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		StringBuilder sb = new StringBuilder();

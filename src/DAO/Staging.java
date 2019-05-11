@@ -19,7 +19,7 @@ public class Staging {
 
 	public static List<String> getData(Connection cnnStaging, Host host) throws SQLException {
 		List<String> result = new ArrayList<>();
-		String sql = "select " + host.dw_query_select + " from " + host.des_table;
+		String sql = "select " + host.select_staging_to_dw + " from " + host.des_table;
 		Statement stmt = cnnStaging.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		StringBuilder sb = new StringBuilder();
