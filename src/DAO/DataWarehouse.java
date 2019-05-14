@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +81,10 @@ public class DataWarehouse {
 		
 		// 2. read each line in "datas", using 'batch' 
 		for (int i = 0; i < datas.size(); i++) {
-			int k = 1;
+			int k = 1, idExistedData;
+			if ((idExistedData = isExistedData(cnnDW, getMssv(datas.get(i)), host.id)) > 0) // kiem tra du lieu bi trung
+				updateNonActice(cnnDW, idExistedData); // update nonactive
+				
 			StringTokenizer values = new StringTokenizer(datas.get(i), ",");
 			for(int j = 0; j < formatArr.length; j++) {
 				String type = formatArr[j];
@@ -131,5 +133,11 @@ public class DataWarehouse {
 		rs.close();
 		stmt.close();
 		return result;
+	}
+	
+	// get mssv from one line data
+	public static String getMssv(String data) {
+		StringTokenizer st = new StringTokenizer(data, ",");
+		return st.nextToken();
 	}
 }

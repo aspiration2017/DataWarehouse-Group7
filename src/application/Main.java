@@ -66,6 +66,8 @@ public class Main {
 			} catch (IOException e) {
 				System.out.println(e.getMessage());
 				File_dataDAO.updateStatus(cnnControl, file.id, "errorstaging");
+			} catch (SQLException e) {
+				System.out.println(e.getMessage());
 			}
 			File_dataDAO.updateLoadedRows(cnnControl, file.id, count);
 			File_dataDAO.updateTimeLoadIntoStaging(cnnControl, file.id);
@@ -129,14 +131,6 @@ public class Main {
 		cnnMart.setAutoCommit(true);	
 	}
 
-	/**
-	 * get MSSV from oneLine of Data
-	 */
-	public String getMssv(String data) {
-		StringTokenizer st = new StringTokenizer(data, ",");
-		return st.nextToken();
-	}
-
 	public void closeControlCnn() throws SQLException {
 		cnnControl.close();
 	}
@@ -155,6 +149,11 @@ public class Main {
 
 	public static void main(String[] args) throws SQLException {
 		Main m = new Main();
+		
+		m.downloadFile();
+		m.loadFileToStaging();
+		m.loadDataFromStagingIntoWarehouse();
+		m.updateStatistic();
 		
 		m.closeMartCnn();
 		m.closeControlCnn();
